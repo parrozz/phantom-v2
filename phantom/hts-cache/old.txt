@@ -1,3 +1,0 @@
-date	size'/'remotesize	flags(request:Update,Range state:File response:Modified,Chunked,gZipped)	statuscode	status ('servermsg')	MIME	Etag|Date	URL	localfile	(from URL)
-23:21:44	14/-1	---M--	308	error ('Permanent%20Redirect')	text/plain		http://kolfag.com/robots.txt		(from )
-23:21:44	14/-1	---M--	308	error ('Permanent%20Redirect')	text/plain		http://kolfag.com/	C:/Mes%20Sites%20Web/phantom/kolfag.com/index.html	(from )
