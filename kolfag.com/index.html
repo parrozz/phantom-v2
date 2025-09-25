@@ -6,46 +6,71 @@
   <meta name="description" content="wallet screenshot maker for kolfags" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="favicon.ico" type="image/x-icon" sizes="16x16" />
-  <!-- Tailwind CDN (remplace les CSS Next pour GitHub Pages) -->
+  <!-- Tailwind pour les utilitaires (remplace les CSS Next) -->
   <script src="https://cdn.tailwindcss.com"></script>
-
   <style>
-    /* Pleine largeur & layout vertical pour afficher les 2 blocs l’un sous l’autre */
+    /* -------- Mise en page & zoom proportionnel (sans toucher au contenu) -------- */
+    html, body { height: 100%; background: #1f2937; overflow-x: hidden; } /* bg-gray-800 */
     .force-fullwidth { width: 100vw !important; max-width: 100% !important; }
-    .stack-vertical { display: flex; flex-direction: column; gap: 48px; align-items: center; }
-    /* Neutralise une éventuelle limite de largeur héritée */
+    .stack-vertical { display:flex; flex-direction:column; gap:48px; align-items:center; }
     .max-w-6xl { max-width: none !important; }
 
-    /* Wrapper qui réserve la place occupée par l’élément zoomé */
-    .scale-wrapper {
-      width: 100vw;
-      position: relative;
-      overflow: visible;
-      display: flex;
-      justify-content: center;
-    }
-    /* Élément réellement zoomé (contenu de 320px) */
-    .scale-content {
-      transform-origin: top center;
-      will-change: transform;
-      display: inline-block;
-    }
+    .scale-wrapper { width:100vw; position:relative; overflow:visible; display:flex; justify-content:center; }
+    .scale-content { transform-origin: top center; will-change: transform; display:inline-block; }
 
-    /* Couleurs/fond comme l’original */
-    html, body { height: 100%; background: #1f2937; /* bg-gray-800 */ overflow-x: hidden; }
-    .background { background-color: rgba(31, 41, 55, 0.6); } /* léger fond pour contraster */
-    .bottom-icon { width: 28px; height: 28px; }
-    .wallet-name-icon { background: rgba(255,255,255,0.08); border-radius: 9999px; padding: 6px 10px; }
-    .purple-line { background: #8b5cf6; } /* ligne violette haut de l’onglet actif */
-    .coin-name { font-weight: 600; }
-    .coin-value { font-weight: 700; }
-    .asset-change-text.negative { color: #f87171; } /* red-400 */
-    .asset-change-text.positive { color: #34d399; } /* emerald-400 */
-    .total-assets { font-size: 32px; font-weight: 800; }
-    .portfolio-change { margin-left: 8px; }
-    .action-buttons { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
-    .action-button { display: flex; gap: 8px; align-items: center; justify-content: center; padding: 10px 12px; border-radius: 12px; background: rgba(171,159,241,0.08); }
-    .asset-element { gap: 8px; }
+    /* -------- Reconstitution des styles “custom” du site original -------- */
+    .outer-background { border-radius: 18px; }
+    .background {
+      backdrop-filter: saturate(120%) blur(0.5px);
+      border-radius: 18px;
+    }
+    .wallet-name-icon-container, .wallet-name-icon {
+      width: 36px; height: 36px; border-radius: 9999px;
+      display:flex; align-items:center; justify-content:center;
+      background: rgba(255,255,255,0.06);
+      margin-right: 10px; font-size: 20px;
+    }
+    .header-username-text { font-size: 13px; color:#cbd5e1; } /* slate-300 */
+    .wallet-name { font-weight: 700; font-size: 18px; }
+    .wallet-name-copy-icon-container { opacity: .8; }
+
+    .total-assets { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; }
+    .dollar-change-text { margin-right:10px; color:#cbd5e1; }
+    .dollar-change-text.negative { color:#f87171; }   /* red-400 */
+    .dollar-change-text.positive { color:#34d399; }   /* emerald-400 */
+    .portfolio-change.negative { color:#f87171; }
+    .portfolio-change.positive { color:#34d399; }
+
+    .action-buttons { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+    .action-button {
+      border-radius: 14px; padding: 12px 14px; font-weight: 600;
+      background: rgba(148,163,184,0.12); /* slate-400/12 */
+      transition: background .15s ease;
+    }
+    .action-button:hover { background: rgba(148,163,184,0.18); }
+
+    .asset-element { background:#4b5563; border-radius:14px; } /* gray-600 */
+    .asset-text-container { width:100%; }
+    .asset-text-top { font-size:16px; color:#fff; font-weight:700; }
+    .asset-text-bottom { font-size:13px; color:#cbd5e1; } /* slate-300 */
+    .coin-name { font-weight:700; }
+    .coin-value { font-weight:800; }
+
+    .purple-line { background:#8b5cf6; height:2px; border-radius:2px; }
+    .bottom-icon { width:28px; height:28px; }
+
+    /* Inputs du formulaire (matching UI original) */
+    .form-container input[type="text"],
+    .form-container input[type="number"],
+    .form-container input[type="file"] {
+      border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+      background:#374151; /* gray-700 */
+    }
+    .form-container h2 { font-weight:700; }
+    .form-container button { border-radius: 12px; font-weight:700; }
+
+    /* Avatars/coins ronds */
+    .coin-avatar { width:40px; height:40px; border-radius:9999px; }
   </style>
 </head>
 <body>
@@ -63,13 +88,15 @@
                 >
                   <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center">
-                      <div class="wallet-name-icon">🪙</div>
-                      <div class="flex items-start justify-center flex-col ml-2">
-                        <div class="text-sm opacity-90">@<!-- -->bingbong</div>
+                      <div class="wallet-name-icon-container">
+                        <div class="wallet-name-icon">🪙</div>
+                      </div>
+                      <div class="flex items-start justify-center flex-col">
+                        <div class="header-username-text">@<!-- -->bingbong</div>
                         <div class="wallet-name-container-outer">
                           <div class="wallet-name-container flex items-center gap-2">
-                            <div class="wallet-name font-semibold">Account 3</div>
-                            <div class="wallet-name-copy-icon-container opacity-80">
+                            <div class="wallet-name">Account 3</div>
+                            <div class="wallet-name-copy-icon-container">
                               <svg fill="none" viewBox="0 0 24 24" width="14" height="14" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
                                 <path stroke="currentColor" d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1m-4 4h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2"></path>
                               </svg>
@@ -112,21 +139,18 @@
                         </svg>
                         Receive
                       </button>
-
                       <button class="action-button">
                         <svg fill="none" viewBox="0 0 24 24" width="24" height="24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
                           <path stroke="#AB9FF1" d="M21 3 10 14M21 3l-7 20-4-9M21 3 1 10l9 4"></path>
                         </svg>
                         Send
                       </button>
-
                       <button class="action-button">
                         <svg fill="none" viewBox="0 0 24 24" width="24" height="24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
                           <path stroke="#AB9FF1" d="m9 14-4 4m0 0 4 4m-4-4h11a4 4 0 0 0 4-4m-5-4 4-4m0 0-4-4m4 4H8a4 4 0 0 0-4 4"></path>
                         </svg>
                         Swap
                       </button>
-
                       <button class="action-button">
                         <svg fill="none" viewBox="0 0 24 24" width="24" height="24" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
                           <path stroke="#AB9FF1" d="M12 1v22m5-18H9.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 1 0 7H6"></path>
@@ -136,22 +160,20 @@
                     </div>
                   </div>
 
-                  <!-- Liste des assets -->
                   <div class="space-y-2">
                     <!-- Solana -->
                     <div class="flex items-center justify-between bg-gray-600 p-2 rounded-lg asset-element">
                       <div class="flex items-center w-full">
                         <div class="w-10 h-10 bg-gray-700 rounded-full mr-2 flex items-center justify-center">
-                          <!-- Icône inline (évite 404 GitHub Pages) -->
-                          <img alt="Solana icon" class="w-full h-full rounded-full"
+                          <img alt="Solana icon" class="w-full h-full rounded-full coin-avatar"
                                src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%238B5CF6"/><stop offset="1" stop-color="%2334D399"/></linearGradient></defs><circle cx="40" cy="40" r="40" fill="url(%23g)"/></svg>' />
                         </div>
-                        <div class="asset-text-container w-full">
+                        <div class="asset-text-container">
                           <div class="asset-text-top flex items-center justify-between">
                             <div class="coin-name">Solana</div>
                             <div class="coin-value">$<!-- -->5,926,593.81</div>
                           </div>
-                          <div class="asset-text-bottom flex items-center justify-between text-sm opacity-90">
+                          <div class="asset-text-bottom flex items-center justify-between">
                             <div class="coin-amount">23,037.37 Solana</div>
                             <div class="asset-change-text negative">-$<!-- -->7,371.96</div>
                           </div>
@@ -162,15 +184,15 @@
                     <div class="flex items-center justify-between bg-gray-600 p-2 rounded-lg asset-element">
                       <div class="flex items-center w-full">
                         <div class="w-10 h-10 bg-gray-700 rounded-full mr-2 flex items-center justify-center">
-                          <img alt="dogwifhat icon" class="w-full h-full rounded-full"
+                          <img alt="dogwifhat icon" class="w-full h-full rounded-full coin-avatar"
                                src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="40" cy="40" r="40" fill="%23f59e0b"/></svg>' />
                         </div>
-                        <div class="asset-text-container w-full">
+                        <div class="asset-text-container">
                           <div class="asset-text-top flex items-center justify-between">
                             <div class="coin-name">dogwifhat</div>
                             <div class="coin-value">$<!-- -->32,538</div>
                           </div>
-                          <div class="asset-text-bottom flex items-center justify-between text-sm opacity-90">
+                          <div class="asset-text-bottom flex items-center justify-between">
                             <div class="coin-amount">10,136.45 dogwifhat</div>
                             <div class="asset-change-text positive">+$<!-- -->204.76</div>
                           </div>
@@ -181,15 +203,15 @@
                     <div class="flex items-center justify-between bg-gray-600 p-2 rounded-lg asset-element">
                       <div class="flex items-center w-full">
                         <div class="w-10 h-10 bg-gray-700 rounded-full mr-2 flex items-center justify-center">
-                          <img alt="RETARDIO icon" class="w-full h-full rounded-full"
+                          <img alt="RETARDIO icon" class="w-full h-full rounded-full coin-avatar"
                                src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="40" cy="40" r="40" fill="%23ef4444"/></svg>' />
                         </div>
-                        <div class="asset-text-container w-full">
+                        <div class="asset-text-container">
                           <div class="asset-text-top flex items-center justify-between">
                             <div class="coin-name">RETARDIO</div>
                             <div class="coin-value">$<!-- -->8,545.3</div>
                           </div>
-                          <div class="asset-text-bottom flex items-center justify-between text-sm opacity-90">
+                          <div class="asset-text-bottom flex items-center justify-between">
                             <div class="coin-amount">71,210.83 RETARDIO</div>
                             <div class="asset-change-text negative">-$<!-- -->1,089.53</div>
                           </div>
@@ -200,57 +222,54 @@
                     <div class="flex items-center justify-between bg-gray-600 p-2 rounded-lg asset-element">
                       <div class="flex items-center w-full">
                         <div class="w-10 h-10 bg-gray-700 rounded-full mr-2 flex items-center justify-center">
-                          <img alt="Fartcoin icon" class="w-full h-full rounded-full"
+                          <img alt="Fartcoin icon" class="w-full h-full rounded-full coin-avatar"
                                src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="40" cy="40" r="40" fill="%239ca3af"/></svg>' />
                         </div>
-                        <div class="asset-text-container w-full">
+                        <div class="asset-text-container">
                           <div class="asset-text-top flex items-center justify-between">
                             <div class="coin-name">Fartcoin</div>
                             <div class="coin-value">$<!-- -->60,440</div>
                           </div>
-                          <div class="asset-text-bottom flex items-center justify-between text-sm opacity-90">
+                          <div class="asset-text-bottom flex items-center justify-between">
                             <div class="coin-amount">172,685.71 Fartcoin</div>
                             <div class="asset-change-text negative">-$<!-- -->6,251.22</div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div><!-- /space-y-2 -->
+                  </div><!-- /assets -->
                 </div><!-- /background -->
-              </div><!-- /outer -->
+              </div>
             </div>
 
+            <!-- Bottom menu -->
             <div class="w-full flex justify-center mt-6 bottom-menu-container">
               <div class="w-80 flex justify-between">
                 <div class="relative flex flex-col items-center">
                   <div class="absolute -top-2 left-0 right-0 h-0.5 purple-line"></div>
-                  <!-- Icône en base64 (original) -->
+                  <!-- Icônes d’origine (base64 du dump) -->
                   <img
                     src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAAAXNSR0IArs4c6QAAAjhJREFUeF7t29FtwjAUhWFnANqVyhAZIJMAk2QAhoCO1PLeVFFIJZCaa3N8HZf+vPCArxV/HN8ElDSBlyTQSNUUBwDFEAAIoCgglpNAAEUBsZwEAigKiOUkEEBRQCwngQCKAmI5CQRQFBDLSSCAooBYTgKfEfDYX96u69pN71/vbfe6F9fqUl5dAo/95RTCMAPeLXo41AZZDeA1dbvf8WbL5hxCOLTdZnxf/VUF4IQ3nNI06kjj6oDH/mMfQnPtdWmEIayPuCrgcr+LxVwXcRXA+H4XiziOa7Zr9MXigNqWtUDLp7EooC/ejFsWsRhgnn5nJbA8ojugT7+LhfTvi66AZbashem7pd0A68Dz39IugHXh+SJmB6wT7+d3dPZrxf8GeG67zdbqmimfOwB+DikHUHZsA6AK3nYvWUOTdbJxcce+5gSGAKAYQQABFAXEchIIoCUwHJZHPPr3/zTr0yfQWqB6lrfmt77e+8+ru4yxFgig8RUDKF5IAwhgahu9He/do7znT109J5FUsbvxAAKYJmCdpNJmC/kfuPbuUd7zAyheZwII4PJf7mxhMSEAArgs4J0Q7/krOIksPaZgH551nabeJmfNbx/h7QiHXyK+N40/dkf/vOj8d2plBxwP9dFtFpsO7/lTUugCOCHGJnF8cCb9US7v+WMR3QBjD+CvjwNQ/AYBBFAUEMtJIICigFhOAgEUBcRyEgigKCCWk0AARQGxnAQCKAqI5SQQQFFALCeBAIoCYvk3lMozYHTUj4UAAAAASUVORK5CYII="
                     alt="Home Icon" class="bottom-icon" />
                 </div>
-
                 <div class="relative flex flex-col items-center">
                   <img
                     src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAAAXNSR0IArs4c6QAAAjlJREFUeF7tm1FuwjAQRGs4WOEyRJwCOAUKl4EeDFJZohJEwNYej9Kixyf2LJuXsWOvQ/rgIxFIkhrxBwBFEwAQgCIBUY4DASgSEOU4EIAiAVGOAwEoEhDlOBCAIgFRjgMBKBIQ5TgQgCIBUY4D/xrA/X6/mM/nm2EYFiW5pZROwzB8dV23faVzxy/JOfdt6sC+74fSBB7177ruYV7u+DW5NwPY9312zqYmibHmcrks1+v16fZ7d/zavJsBPBwOx9Jh+yzpPJxXq9Xytt0df3KA4+H1bBg+SzTSR+0RAFX/9GZHP/zbdjXBSB+1R3mqegCOHnClIwSAALxfIpU6iCEsOgiAAHz9nIwcErXzFA4cBsDAIhGgqB0H4kDvMuPtHeje7LvjR1OAfSeSC52z2exYm8hItxsXVt3xa/NuVs7KCbgLnu74NRCbArxC3KaUPktrg7kGeD6fd+NC6viicmHVGb8UYnOApQn89/4AFO8gAAEoEhDlzR3oPrd1xy/l2RSge5nhjl8KL/dvBtB9buuOXwOvKUD3Vssdf3KA7s2+Oz4AxXojAAH4up7IEBYdAkAAaseS0SQdOSxqV+NHentF2n2B7vgAFKcIAAKQZczdG/qtXz97+znQvdl3x598DnSf27rjTw7weqTJH21q78SPzn1u645fev3NKtKlP/wu/QEo3kkAAlAkIMpxIABFAqIcBwJQJCDKcSAARQKiHAcCUCQgynEgAEUCohwHAlAkIMpxIABFAqL8G5XCdG8e6/uvAAAAAElFTkSuQmCC"
                     alt="Grid Icon" class="bottom-icon" />
                 </div>
-
                 <div class="relative flex flex-col items-center">
                   <img
                     src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAAAXNSR0IArs4c6QAAAtJJREFUeF7tm31ywiAQxUEPVr2MGU+hnsKJl9EezKSzHdOJKXQS336AXf9mN/DLW3hAjMF/EIEIRXtwcICgCBygAwQJgOGuQAcIEgDDXYEOECQAhrsCHSBIAAx3BTpAkAAY7gp0gCABMNwV+N8Atm17jDF+9H2/CSGcmqY5ggyg8OoUSABDCIdh1DHG226320IUgODqAJ7P581qtbpOxmymxOoAErjL5XJ9lPCYownEKgGWBLFagKVArBpgZj4ktmrlXDVAImUNsXqA1hBVAT7UsiEjTANPrKSAI0uHdl233e/3N/bEj4RqAKcGWGpA07zSRlscIKluvV4fNNSWeinVA8yYXi0Biq/IogpMlS0p4n6/n2hkXHOT5UosDbCX3rNawqOxiQFMqa9pGtbnWcPTBsi+OyjhUIFVEeNynQ6O24+VAE9agU/zH2f5lgJPGuD45JitfDOGnC3/Un8lVsLDHpXTrmSOsMzgiSpw6Zuc23688krvMub0SVSBczrwahsCyWXEX+1DlQpEBisRW60CJWC8krMIgKWUY5UAx56O22y/AmRpjKkCpb8yIGVz26hfB7ZLiXO1lzbEk/xiXtFEgblzQs5vXNq2FdtKjkWkDlAD3vSYS9JwqwLUgEfqSDyn/hLO3cpJrLzT8pX8UkFFgcrwnr4fJEVyHqWpr8Ia8Aa7krk+FStf8b2w1WX6oBLJxePnGVy+LpXH8k54uD6VPrERnQMNAYqWrZoP/OPakVX4pDZK2Pf9Z9d1N2nVqQHMeLLv50vYF9a3MjOZaAkPfdBYiWeOl72ZCsB3VqIawBxEDavBLrtRQlWA7whRHeC7QTQBmINY48psBpAgJoy2mgHmmhdNAY6VSIsJGWHrv68uBWsOcGmHS2vvAME34gAdIEgADHcFOkCQABjuCnSAIAEw3BXoAEECYLgr0AGCBMBwV6ADBAmA4a5ABwgSAMO/AHzwk2AtqGbvAAAAAElFTkSuQmCC"
                     alt="Swap Icon" class="bottom-icon" />
                 </div>
-
                 <div class="relative flex flex-col items-center">
                   <img
-                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAAAXNSR0IArs4c6QAAA3NJREFUeF7tm2FywiAQhRs9WNvLmPEUradw4mW0BzNptxM6kQLZ8B6k2vWXo9nAfrzdBUKaJ/tABBrI2oyfDCAoAgNoAEECoLkp0ACCBEBzU6ABBAmA5qZAAwgSAM1NgQYQJACamwINIEgADQ3BRoAEECoLkp0ACCBEBzU6ABBAmA5qZAAwgSAM1Ngb8F4Ol0eidf+r5/77ruD32e5/n2t67rLvM8/3O+TtN0ORwOF9B3EfNNFUjQCNg3q89Kb47DMPyttBUx2wQggdvtdp9OYQKeHOkdW8BsDvB8Pn8JggvZN1dkM4Ac1blcRzmOyLg854W6A5YMeXrH9Xo9tsqRTQCO40h5Kup0rcP0TppsVtTcRI3qAFPwasGFMZtRtjpEVYAryhN3rGVb/iCqAbznra9QMdM0fWjlpxREzTbVAMZmW01H3EDFBo7SxX6//xAol368QgVgQgniYZsC0hKiOMBW8Nzk4SCGpUusHxoRoA5QOnxSs26snTCNSPfltk6XzgvjOM7+OyVGnVuEh3kuFsoS/VGbhcOwQUbcrT4yxbLvSzTHRiYz0VwsqsBQfd8KL+4sR22xqEkpK6bCYRjE/BZ7EdrRVN0Ywrqvl2/7hO4np3SNtPJoWyoHRma9IvVF1Lvomr/0K1V6GMaSeVBMgQjAkvVy7NlcSCJ9ywnsKQGubTTUwAjTQy7kc9BUZmEkTEpyVGn4krMvATB0LBdWbhRLSp+a8PXaWdSn3P7l1CgZwlUdLFEUUtPVDnAzgDUhXKIopEx6iRAWAhgtfRLFNbtMqpl4csp7ijowF75S2/UvAbA0TFLhy13KlUwCLwmQJL7mZGzHOrZMK1n3psKupEzihq54CNMLuR3lrnvD9W7NeW/JRFUKj54XK2PuABfnv6mKf+2cOIRGl4qQy0RI6cMBKgqQu4GZu94heWbc9/3iZLAkdzYHSA1yttFT+a8mRNec1Jw8VHJgbN15b2hRs+UOhDgjn3um1eGWaAg7p7Y6E06tr2ODmBsA7v9VAMZCmf4muZGZcjA1w0vnPrUQdi9eKVXYSzCuCnJtag6cmgJjZY0HRBzir7tclMlH9O8jUt/5qlu5Liw+UGFUqCqQAfEGkn6V3m9mrJnV4VG/mwBcKW/CAb3BvE84j68yhF+BWLtjLVWEc/NvM4BMNXL7HX1O8rCI25HmAL3JhT7Wfj9k4V9r1fmNbwLQ7wB3YyGhCJGJiKu22HObAwxquMeVDf9SESmMnnM7M/RZ65pwKcynAVja8Wd53gCCI2EADSBIADQ3BRpAkABobgo0gCAB0NwUaABBAqC5KdAAggRAc1OgAQQJgOamQAMIEgDNTYEGECQAmv8Hgd8ifunDoZoAAAAASUVORK5CYII="
+                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAAAXNSR0IArs4c6QAAA3NJREFUeF7tm2FywiAQhRs9WNvLmPEUradw4mW0BzNptxM6kQLZ8B6k2vWXo9nAfrzdBUKaJ/tABBrI2oyfDCAoAgNoAEECoLkp0ACCBEBzU6ABBAmA5qZAAwgSAM1Ngb8F4Ol0eidf+r5/77ruD32e5/n2t67rLvM8/3O+TtN0ORwOF9B3EfNNFUjQCNg3q89Kb47DMPyttBUx2wQggdvtdp9OYQKeHOkdW8BsDvB8Pn8JggvZN1dkM4Ac1blcRzmOyLg854W6A5YMeXrH9Xo9tsqRTQCO40h5Kup0rcP0TppsVtTcRI3qAFPwasGFMZtRtjpEVYAryhN3rGVb/iCqAbznra9QMdM0fWjlpxREzTbVAMZmW01H3EDFBo7SxX6//xAol368QgVgQgniYZsC0hKiOMBW8Nzk4SCGpUusHxoRoA5QOnxSs26snTCNSPfltk6XzgvjOM7+OyVGnVuEh3kuFsoS/VGbhcOwQUbcrT4yxbLvSzTHRiYz0VwsqsBQfd8KL+4sR22xqEkpK6bCYRjE/BZ7EdrRVN0Ywrqvl2/7hO4np3SNtPJoWyoHRma9IvVF1Lvomr/0K1V6GMaSeVBMgQjAkvVy7NlcSCJ9ywnsKQGubTTUwAjTQy7kc9BUZmEkTEpyVGn4krMvATB0LBdWbhRLSp+a8PXaWdSn3P7l1CgZwlUdLFEUUtPVDnAzgDUhXKIopEx6iRAWAhgtfRLFNbtMqpl4csp7ijowF75S2/UvAbA0TFLhy13KlUwCLwmQJL7mZGzHOrZMK1n3psKupEzihq54CNMLuR3lrnvD9W7NeW/JRFUKj54XK2PuABfnv6mKf+2cOIRGl4qQy0RI6cMBKgqQu4GZu94heWbc9/3iZLAkdzYHSA1yttFT+a8mRNec1Jw8VHJgbN15b2hRs+UOhDgjn3um1eGWaAg7p7Y6E06tr2ODmBsA7v9VAMZCmf4muZGZcjA1w0vnPrUQdi9eKVXYSzCuCnJtag6cmgJjZY0HRBzir7tclMlH9O8jUt/5qlu5Liw+UGFUqCqQAfEGkn6V3m9mrJnV4VG/mwBcKW/CAb3BvE84j68yhF+BWLtjLVWEc/NvM4BMNXL7HX1O8rCI25HmAL3JhT7Wfj9k4V9r1fmNbwLQ7wB3YyGhCJGJiKu22HObAwxquMeVDf9SESmMnnM7M/RZ65pwKcynAVja8Wd53gCCI2EADSBIADQ3BRpAkABobgo0gCAB0NwUaABBAqC5KdAAggRAc1OgAQQJgOamQAMIEgDNTYEGECQAmv8Hgd8ifunDoZoAAAAASUVORK5CYII="
                     alt="History Icon" class="bottom-icon" />
                 </div>
-
                 <div class="relative flex flex-col items-center">
                   <img
-                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAAAXNSR0IArs4c6QAAA+JJREFUeF7tm21y4jAMhptwsG0vQ4ZTdDkFEy5T9mAkWzGYcVw7lv1KDnTUHx2mjWLr8StZ/qB7sx+IQAdZm/GbAQRFYAANIEgANDcFGkCQAGhuCjSAIAHQ3BRoAEECoLkp0ACCBEBzU6ABBAmA5qZAAwgSAM1Ngb8F4Ol0eidf+r5/77ruD32e5/n2t67rLvM8/3O+TtN0ORwOF9B3EfNNFUjQCNg3q89Kb47DMPyttBUx2wQggdvtdp9OYQKeHOkdW8BsDvB8Pn8JggvZN1dkM4Ac1blcRzmOyLg854W6A5YMeXrH9Xo9tsqRTQCO40h5Kup0rcP0TppsVtTcRI3qAFPwasGFMZtRtjpEVYAryhN3rGVb/iCqAbznra9QMdM0fWjlpxREzTbVAMZmW01H3EDFBo7SxX6//xAol368QgVgQgniYZsC0hKiOMBW8Nzk4SCGpUusHxoRoA5QOnxSs26snTCNSPfltk6XzgvjOM7+OyVGnVuEh3kuFsoS/VGbhcOwQUbcrT4yxbLvSzTHRiYz0VwsqsBQfd8KL+4sR22xqEkpK6bCYRjE/BZ7EdrRVN0Ywrqvl2/7hO4np3SNtPJoWyoHRma9IvVF1Lvomr/0K1V6GMaSeVBMgQjAkvVy7NlcSCJ9ywnsKQGubTTUwAjTQy7kc9BUZmEkTEpyVGn4krMvATB0LBdWbhRLSp+a8PXaWdSn3P7l1CgZwlUdLFEUUtPVDnAzgDUhXKIopEx6iRAWAhgtfRLFNbtMqpl4csp7ijowF75S2/UvAbA0TFLhy13KlUwCLwmQJL7mZGzHOrZMK1n3psKupEzihq54CNMLuR3lrnvD9W7NeW/JRFUKj54XK2PuABfnv6mKf+2cOIRGl4qQy0RI6cMBKgqQu4GZu94heWbc9/3iZLAkdzYHSA1yttFT+a8mRNec1Jw8VHJgbN15b2hRs+UOhDgjn3um1eGWaAg7p7Y6E06tr2ODmBsA7v9VAMZCmf4muZGZcjA1w0vnPrUQdi9eKVXYSzCuCnJtag6cmgJjZY0HRBzir7tclMlH9O8jUt/5qlu5Liw+UGFUqCqQAfEGkn6V3m9mrJnV4VG/mwBcKW/CAb3BvE84j68yhF+BWLtjLVWEc/NvM4BMNXL7HX1O8rCI25HmAL3JhT7Wfj9k4V9r1fmNbwLQ7wB3YyGhCJGJiKu22HObAwxquMeVDf9SESmMnnM7M/RZ65pwKcynAVja8Wd53gCCI2EADSBIADQ3BRpAkABobgo0gCAB0NwUaABBAqC5KdAAggRAc1OgAQQJgOamQAMIEgDNTYEGECQAmv8Hgd8ifunDoZoAAAAASUVORK5CYII="
+                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAAAXNSR0IArs4c6QAAA+JJREFUeF7tm21y4jAMhptwsG0vQ4ZTdDkFEy5T9mAkWzGYcVw7lv1KDnTUHx2mjWLr8StZ/qB7sx+IQAdZm/GbAQRFYAANIEgANDcFGkCQAGhuCjSAIAHQ3BRoAEECoLkp0ACCBEBzU6ABBAmA5qZAAwgSAM1Ngb8F4Ol0eidf+r5/77ruD32e5/n2t67rLvM8/3O+TtN0ORwOF9B3EfNNFUjQCNg3q89Kb47DMPyttBUx2wQggdvtdp9OYQKeHOkdW8BsDvB8Pn8JggvZN1dkM4Ac1blcRzmOyLg854W6A5YMeXrH9Xo9tsqRTQCO40h5Kup0rcP0TppsVtTcRI3qAFPwasGFMZtRtjpEVYAryhN3rGVb/iCqAbznra9QMdM0fWjlpxREzTbVAMZmW01H3EDFBo7SxX6//xAol368QgVgQgniYZsC0hKiOMBW8Nzk4SCGpUusHxoRoA5QOnxSs26snTCNSPfltk6XzgvjOM7+OyVGnVuEh3kuFsoS/VGbhcOwQUbcrT4yxbLvSzTHRiYz0VwsqsBQfd8KL+4sR22xqEkpK6bCYRjE/BZ7EdrRVN0Ywrqvl2/7hO4np3SNtPJoWyoHRma9IvVF1Lvomr/0K1V6GMaSeVBMgQjAkvVy7NlcSCJ9ywnsKQGubTTUwAjTQy7kc9BUZmEkTEpyVGn4krMvATB0LBdWbhRLSp+a8PXaWdSn3P7l1CgZwlUdLFEUUtPVDnAzgDUhXKIopEx6iRAWAhgtfRLFNbtMqpl4csp7ijowF75S2/UvAbA0TFLhy13KlUwCLwmQJL7mZGzHOrZMK1n3psKupEzihq54CNMLuR3lrnvD9W7NeW/JRFUKj54XK2PuABfnv6mKf+2cOIRGl4qQy0RI6cMBKgqQu4GZu94heWbc9/3iZLAkdzYHSA1yttFT+a8mRNec1Jw8VHJgbN15b2hRs+UOhDgjn3um1eGWaAg7p7Y6E06tr2ODmBsA7v9VAMZCmf4muZGZcjA1w0vnPrUQdi9eKVXYSzCuCnJtag6cmgJjZY0HRBzir7tclMlH9O8jUt/5qlu5Liw+UGFUqCqQAfEGkn6V3m9mrJnV4VG/mwBcKW/CAb3BvE84j68yhF+BWLtjLVWEc/NvM4BMNXL7HX1O8rCI25HmAL3JhT7Wfj9k4V9r1fmNbwLQ7wB3YyGhCJGJiKu22HObAwxquMeVDf9SESmMnnM7M/RZ65pwKcynAVja8Wd53gCCI2EADSBIADQ3BRpAkABobgo0gCAB0NwUaABBAqC5KdAAggRAc1OgAQQJgOamQAMIEgDNTYEGECQAmv8Hgd8ifenDoZoAAAAASUVORK5CYII="
                     alt="Explore Icon" class="bottom-icon" />
                 </div>
               </div>
@@ -275,11 +294,10 @@
               <h2 class="text-xl mb-4">Existing Assets</h2>
 
               <div class="space-y-2 mb-4">
-                <!-- Sponsor card -->
                 <div class="relative flex items-center justify-between bg-gray-600 p-2 rounded-lg asset-element">
                   <div class="flex items-center w-full">
                     <div class="w-10 h-10 bg-gray-700 rounded-full mr-2 flex items-center justify-center">
-                      <img alt="template ad icon" class="w-full h-full rounded-full"
+                      <img alt="template ad icon" class="w-full h-full rounded-full coin-avatar"
                            src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="%23787FFF"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-size="28" fill="white" font-family="Arial">AD</text></svg>' />
                     </div>
                     <div class="asset-text-container w-full">
@@ -287,7 +305,7 @@
                         <div class="coin-name">Your coin here?</div>
                         <div class="coin-value">0.25 Sol/week</div>
                       </div>
-                      <div class="asset-text-bottom flex items-center justify-between text-sm opacity-90">
+                      <div class="asset-text-bottom flex items-center justify-between">
                         <div class="coin-amount">DM @bullposting for ads</div>
                         <div class="asset-change-text positive">Sponsor</div>
                       </div>
@@ -304,7 +322,7 @@
                   </button>
                   <div class="flex items-center w-full">
                     <div class="w-10 h-10 bg-gray-700 rounded-full mr-2 flex items-center justify-center">
-                      <img alt="Solana icon" class="w-full h-full rounded-full"
+                      <img alt="Solana icon" class="w-full h-full rounded-full coin-avatar"
                            src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%238B5CF6"/><stop offset="1" stop-color="%2334D399"/></linearGradient></defs><circle cx="40" cy="40" r="40" fill="url(%23g2)"/></svg>' />
                     </div>
                     <div class="asset-text-container w-full">
@@ -312,7 +330,7 @@
                         <div class="coin-name">Solana</div>
                         <div class="coin-value">$<!-- -->5,926,593.81</div>
                       </div>
-                      <div class="asset-text-bottom flex items-center justify-between text-sm opacity-90">
+                      <div class="asset-text-bottom flex items-center justify-between">
                         <div class="coin-amount">23,037.37 Solana</div>
                         <div class="asset-change-text negative">-$<!-- -->7,371.96</div>
                       </div>
@@ -329,7 +347,7 @@
                   </button>
                   <div class="flex items-center w-full">
                     <div class="w-10 h-10 bg-gray-700 rounded-full mr-2 flex items-center justify-center">
-                      <img alt="dogwifhat icon" class="w-full h-full rounded-full"
+                      <img alt="dogwifhat icon" class="w-full h-full rounded-full coin-avatar"
                            src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="40" cy="40" r="40" fill="%23f59e0b"/></svg>' />
                     </div>
                     <div class="asset-text-container w-full">
@@ -337,7 +355,7 @@
                         <div class="coin-name">dogwifhat</div>
                         <div class="coin-value">$<!-- -->32,538</div>
                       </div>
-                      <div class="asset-text-bottom flex items-center justify-between text-sm opacity-90">
+                      <div class="asset-text-bottom flex items-center justify-between">
                         <div class="coin-amount">10,136.45 dogwifhat</div>
                         <div class="asset-change-text positive">+$<!-- -->204.76</div>
                       </div>
@@ -354,7 +372,7 @@
                   </button>
                   <div class="flex items-center w-full">
                     <div class="w-10 h-10 bg-gray-700 rounded-full mr-2 flex items-center justify-center">
-                      <img alt="RETARDIO icon" class="w-full h-full rounded-full"
+                      <img alt="RETARDIO icon" class="w-full h-full rounded-full coin-avatar"
                            src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="40" cy="40" r="40" fill="%23ef4444"/></svg>' />
                     </div>
                     <div class="asset-text-container w-full">
@@ -362,7 +380,7 @@
                         <div class="coin-name">RETARDIO</div>
                         <div class="coin-value">$<!-- -->8,545.3</div>
                       </div>
-                      <div class="asset-text-bottom flex items-center justify-between text-sm opacity-90">
+                      <div class="asset-text-bottom flex items-center justify-between">
                         <div class="coin-amount">71,210.83 RETARDIO</div>
                         <div class="asset-change-text negative">-$<!-- -->1,089.53</div>
                       </div>
@@ -379,7 +397,7 @@
                   </button>
                   <div class="flex items-center w-full">
                     <div class="w-10 h-10 bg-gray-700 rounded-full mr-2 flex items-center justify-center">
-                      <img alt="Fartcoin icon" class="w-full h-full rounded-full"
+                      <img alt="Fartcoin icon" class="w-full h-full rounded-full coin-avatar"
                            src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="40" cy="40" r="40" fill="%239ca3af"/></svg>' />
                     </div>
                     <div class="asset-text-container w-full">
@@ -387,7 +405,7 @@
                         <div class="coin-name">Fartcoin</div>
                         <div class="coin-value">$<!-- -->60,440</div>
                       </div>
-                      <div class="asset-text-bottom flex items-center justify-between text-sm opacity-90">
+                      <div class="asset-text-bottom flex items-center justify-between">
                         <div class="coin-amount">172,685.71 Fartcoin</div>
                         <div class="asset-change-text negative">-$<!-- -->6,251.22</div>
                       </div>
@@ -397,7 +415,6 @@
               </div><!-- /space-y-2 -->
 
               <h2 class="text-xl mb-4">Add New Asset</h2>
-
               <div class="space-y-2">
                 <input type="text" placeholder="Asset Name" class="w-full p-2 rounded bg-gray-700 text-white" name="name" value="" />
                 <input type="number" placeholder="USD Value" class="w-full p-2 rounded bg-gray-700 text-white" name="usd_value" value="" />
@@ -421,26 +438,19 @@
     </footer>
   </div>
 
-  <!-- ===== JS: mise à l’échelle proportionnelle des 2 blocs ===== -->
+  <!-- ===== JS : scale proportionnel (2 blocs, pleine largeur) ===== -->
   <script>
     (function () {
       function rescaleAll() {
         document.querySelectorAll('.scale-wrapper').forEach(function (wrapper) {
           var content = wrapper.querySelector('.scale-content');
           if (!content) return;
-
-          // Mesure non-scalée
-          var prev = content.style.transform;
           content.style.transform = 'none';
           var baseWidthAttr = wrapper.getAttribute('data-base-width');
-          var baseWidth = baseWidthAttr ? parseFloat(baseWidthAttr) : content.offsetWidth || 320;
+          var baseWidth = baseWidthAttr ? parseFloat(baseWidthAttr) : (content.offsetWidth || 320);
           var naturalHeight = content.offsetHeight;
-
-          // Calcule un scale pour que la largeur "design" (320px) occupe 100% du viewport
           var available = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
           var scale = available / baseWidth;
-
-          // Applique le scale & réserve la hauteur
           content.style.transform = 'scale(' + scale + ')';
           wrapper.style.height = (naturalHeight * scale) + 'px';
         });
