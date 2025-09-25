@@ -4,6 +4,28 @@
   <!-- Added by HTTrack -->
   <meta http-equiv="content-type" content="text/html;charset=utf-8" />
   <!-- /Added by HTTrack -->
+ <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1420">
+<style>
+  html,body{margin:0!important;padding:0!important;height:100%;background:#0b1420;}
+  /* enlève la bande blanche et le fond bleu global */
+  .flex.flex-col.min-h-screen.bg-gray-800{background:transparent!important;}
+  /* cache le panneau bleu (Wallet Settings) */
+  .form-container{display:none!important;}
+  /* scène plein écran qui accueillera la carte */
+  #phantom-stage{
+    position:fixed;inset:0;display:flex;justify-content:center;align-items:flex-start;
+    overflow-x:hidden;overflow-y:auto;background:#0b1420;
+    padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
+  }
+  /* la carte (colonne centrale) qu’on va zoomer */
+  .phantom-frame{width:320px;transform-origin:top center;will-change:transform;margin:0!important;}
+  /* on supprime les gaps du conteneur d’origine */
+  .flex-grow.flex.items-center.justify-center
+    > .flex.flex-col.lg\:flex-row.items-center.justify-center.gap-4.p-4.w-full.max-w-6xl{
+      gap:0!important;padding:0!important;max-width:none!important;width:100%!important;
+  }
+</style>
   <head>
     <meta charSet="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -68,6 +90,39 @@
       noModule=""
     ></script>
   </head>
+ <script>
+(function () {
+  function ready(fn){document.readyState!=="loading"?fn():document.addEventListener("DOMContentLoaded",fn);}
+  ready(function(){
+    // trouve la "carte" (colonne centrale, largeur 320px)
+    var card = document.querySelector('.outer-background')?.closest('.w-80');
+    if(!card){ console.warn('Carte centrale introuvable'); return; }
+
+    // crée la scène plein écran et y déplace la carte
+    var stage = document.createElement('div');
+    stage.id = 'phantom-stage';
+    document.body.appendChild(stage);
+    card.classList.add('phantom-frame');
+    stage.appendChild(card);
+
+    // cache explicitement la colonne bleue si encore là
+    var form = document.querySelector('.form-container');
+    if(form) form.style.display = 'none';
+
+    var BASE = 320; // largeur de référence de la carte
+    function fit(){
+      var vw = Math.max(document.documentElement.clientWidth, window.innerWidth||0);
+      var vh = Math.max(document.documentElement.clientHeight, window.innerHeight||0);
+      var scale = vw / BASE;                 // zoom pour prendre 100% en largeur
+      card.style.transform = 'scale('+scale+')';
+      stage.style.overflowY = (card.offsetHeight*scale > vh) ? 'auto' : 'hidden';
+    }
+    window.addEventListener('resize',fit);
+    window.addEventListener('orientationchange',fit);
+    fit(); setTimeout(fit,100); setTimeout(fit,400); setTimeout(fit,1000);
+  });
+})();
+</script>
   <body>
     <div class="flex flex-col min-h-screen bg-gray-800">
       <div class="flex-grow flex items-center justify-center">
