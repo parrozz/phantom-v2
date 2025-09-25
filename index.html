@@ -1,120 +1,103 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Local index - HTTrack Website Copier</title>
+<!-- Fond sombre + safe-area iOS -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0B0B14">
+<style>
+  html, body { margin:0; background:#0B0B14 !important; color-scheme: dark; }
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    overflow-x: hidden;
+  }
+  /* on neutralise les grands wrappers externes bleus */
+  :is(body>div, body>main, body>section, #__next, #__next>div){ background:#0B0B14 !important; }
+  #phantom-fit-wrap{ width:100%; display:flex; justify-content:center; }
+</style>
 
-  <!-- iOS/Android: plein écran + safe-area (supprime la bande blanche) -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0B0B14">
+<script>
+(() => {
+  // ----- Réglages (tu peux ajuster si besoin) -----
+  const MAX_SCALE = 3;    // limite pour éviter un zoom "gigantesque" sur très grands écrans
+  const MIN_WIDTH = 320;  // largeur min raisonnable pour la colonne cible
+  const MAX_WIDTH = 900;  // largeur max raisonnable pour la colonne cible
 
-  <meta name="description" content="HTTrack is an easy-to-use website mirror utility. It allows you to download a World Wide website from the Internet to a local directory, building recursively all structures, getting html, images, and other files from the server to your computer." />
-  <meta name="keywords" content="httrack, offline browser, website mirror" />
+  // Si tu connais un sélecteur fiable de la colonne centrale, mets-le ici :
+  const CUSTOM_SELECTOR = ''; // ex: '.max-w-md.mx-auto' ; sinon on auto-détecte
 
-  <style>
-    /* Fond global sombre (remplace le bleu) */
-    html, body { margin:0; background:#0B0B14 !important; color-scheme: dark; }
-    body{
-      padding-top: env(safe-area-inset-top);
-      padding-right: env(safe-area-inset-right);
-      padding-bottom: env(safe-area-inset-bottom);
-      padding-left: env(safe-area-inset-left);
-      font: 14px "Trebuchet MS", Verdana, Arial, Helvetica, sans-serif;
-      color:#e6e6e6;
+  function findTarget(){
+    if (CUSTOM_SELECTOR) {
+      const el = document.querySelector(CUSTOM_SELECTOR);
+      if (el) return el;
     }
-
-    /* Neutralise les anciens fonds/bitmaps bleus */
-    #pageContent, #siteNavigation,
-    body > table, body > table td { background: transparent !important; }
-    #pageContent {
-      clear: both;
-      border-bottom: 0;
-      padding: 10px 10px 20px;
-      line-height: 1.65em;
-      background-image: none !important;
+    // Heuristique: on cherche un conteneur centré et relativement étroit
+    const list = Array.from(document.querySelectorAll('main, [role="main"], #__next>div, body>div, body>main'));
+    let best = null, bestScore = -1;
+    for (const el of list){
+      const r = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      const centered = (style.marginLeft === 'auto' && style.marginRight === 'auto') ? 1 : 0;
+      const w = r.width;
+      const inRange = (w >= MIN_WIDTH && w <= MAX_WIDTH) ? 2 : 0;
+      const score = (centered*2) + inRange + Math.min(w, 1000)/1000; // score simple
+      if (score > bestScore) { bestScore = score; best = el; }
     }
-    .tblRegular{ border-collapse: collapse; }
-    .tblRegular td{
-      padding: 6px;
-      /* on retire le dégradé gif bleu */
-      background-image: none !important;
-      border: 1px solid #2a2a2a;
-      background: #161821;
-      color:#e6e6e6;
-    }
+    // fallback: 1er enfant de #__next ou du body
+    return best || document.querySelector('#__next>*') || document.body.firstElementChild || null;
+  }
 
-    /* En-têtes */
-    #subTitle{
-      background:#0B0B14; color:#fff; padding:8px 4px; font-weight:bold;
-      border-bottom:1px solid #242633;
-    }
+  function ensureWrapper(el){
+    if (el && el.parentElement && el.parentElement.id === 'phantom-fit-wrap') return el.parentElement;
+    const wrap = document.createElement('div');
+    wrap.id = 'phantom-fit-wrap';
+    el.parentElement.insertBefore(wrap, el);
+    wrap.appendChild(el);
+    return wrap;
+  }
 
-    /* Liens */
-    a{ color:#93b4ff; text-decoration: none; }
-    a:hover{ text-decoration: underline; }
+  function fitOnce(){
+    const target = findTarget();
+    if (!target) return;
+    const wrap = ensureWrapper(target);
 
-    /* Mise en page des grandes tables d'origine (centrées, plus étroites) */
-    .tableWidth{ width:min(960px, 92%); margin:0 auto; }
-    .blak { background-color: transparent; }
+    // largeur "naturelle" avant scale (si déjà scalé, on la récupère)
+    const currentScale = target.__phantomScale || 1;
+    const naturalWidth = target.getBoundingClientRect().width / currentScale;
 
-    /* Pied de page */
-    #footer{ color:#9aa0a6; text-align:center; padding:16px 0; }
-  </style>
-</head>
+    // facteur de zoom pour remplir la largeur de la fenêtre
+    const scale = Math.min((window.innerWidth) / naturalWidth, MAX_SCALE);
 
-<body>
+    // applique le scale proprement
+    target.style.transformOrigin = 'top center';
+    target.style.transform = `scale(${scale})`;
+    target.style.margin = '0 auto';
+    target.style.width = naturalWidth + 'px'; // base non-scalée pour garder les proportions
+    target.__phantomScale = scale;
 
-  <table border="0" cellspacing="0" cellpadding="3" class="tableWidth">
-    <tr>
-      <td id="subTitle">HTTrack Website Copier - Open Source offline browser</td>
-    </tr>
-  </table>
+    // réserver la hauteur pour que le flux ne se chevauche pas
+    const natHeight = target.getBoundingClientRect().height / scale;
+    wrap.style.height = (natHeight * scale) + 'px';
 
-  <table border="0" cellspacing="0" cellpadding="0" class="tableWidth">
-    <tr class="blak">
-      <td>
-        <table width="100%" border="0" cellspacing="1" cellpadding="0">
-          <tr>
-            <td colspan="6">
-              <table width="100%" border="0" cellspacing="0" cellpadding="10">
-                <tr>
-                  <td id="pageContent">
-                    <!-- ==================== Content ==================== -->
-                    <h1 style="text-align:center;margin:0 0 12px;">Index of locally available sites</h1>
+    // sécurité : fond global noir
+    document.documentElement.style.background = '#0B0B14';
+    document.body.style.background = '#0B0B14';
+  }
 
-                    <table class="tblRegular" border="0" width="100%" cellspacing="1" cellpadding="0">
-                      <tr>
-                        <td>
-                          &middot;
-                          <a href="kolfag.com/index.html">Kolfag - screenshot maker for Kolfags</a>
-                        </td>
-                      </tr>
-                    </table>
+  // On relance à l’arrivée du contenu (Next.js hydrate après le load)
+  function afterHydrationTry(){
+    fitOnce();
+    // si le DOM change (SPA), on refit
+    const mo = new MutationObserver(() => fitOnce());
+    mo.observe(document.body, {childList:true, subtree:true});
+  }
 
-                    <br><br>
-
-                    <h6 style="text-align:right;margin:0;color:#9aa0a6;">
-                      <i>Mirror and index made by HTTrack Website Copier</i>
-                    </h6>
-
-                    <!-- Redirection automatique vers le site cloné -->
-                    <meta http-equiv="refresh" content="0; URL=kolfag.com/index.html">
-                    <!-- ==================== /Content ==================== -->
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-
-  <div class="tableWidth" id="footer">
-    <small>&copy; 2008 Xavier Roche & other contributors — Web Design: Leto Kauler.</small>
-  </div>
-
-</body>
-</html>
+  window.addEventListener('load', () => {
+    // premier fit, puis un autre un peu plus tard (après hydratation)
+    fitOnce();
+    setTimeout(afterHydrationTry, 600);
+  });
+  window.addEventListener('resize', () => requestAnimationFrame(fitOnce));
+})();
+</script>
